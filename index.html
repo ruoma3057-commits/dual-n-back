@@ -416,6 +416,8 @@ body.running .start-ov{display:none}
         <div class="note">2つ選べば Dual、3つ以上で Triple / Quad / Penta N-Back になります。</div>
         <div class="modsel" id="modSel"></div>
         <div class="field"><div class="l">音量</div><input type="range" min="0.1" max="1" step="0.05" data-set="volume" style="width:150px;accent-color:#8b9dff"></div>
+        <div class="field"><div class="l">出現時の効果音<small>ブロックが表示されるたびに鳴る短い音（すべてのブロックで同じ音なので、答えのヒントにはなりません）</small></div><select class="inp" data-set="sfx"><option value="pop">ポップ</option><option value="click">クリック</option><option value="chime">チャイム</option><option value="soft">ソフト</option><option value="off">なし</option></select></div>
+        <div class="field"><div class="l">効果音の音量</div><div style="display:flex;gap:8px;align-items:center"><input type="range" min="0.05" max="1" step="0.05" data-set="sfxVol" style="width:120px;accent-color:#8b9dff"><button class="btn sm" id="sfxTest">試聴</button></div></div>
       </div>
       <div class="card">
         <h3>テンポ・試行数</h3>
@@ -487,7 +489,7 @@ const LETTER_SETS = {latin:['C','H','K','L','Q','R','S','T'], kana:['あ','か',
 const POS_CELLS = [0,1,2,3,4,5,6,7,8];
 const DEFAULT_SETTINGS = {n:2, mods:['pos','sound'], adaptive:true, up:80, down:50, matchRate:30,
   trialsBase:20, addN:false, intervalMs:2000, showMs:500, feedback:true, volume:0.6,
-  dailyGoal:5, v:2, voiceEngine:'builtin', theme:'auto', soundLetters:['C','H','K','L','Q','R','S','T'], lenMode:'time', minutes:2,
+  dailyGoal:5, v:2, sfx:'pop', sfxVol:0.5, voiceEngine:'builtin', theme:'auto', soundLetters:['C','H','K','L','Q','R','S','T'], lenMode:'time', minutes:2,
   colorSet:[0,1,2,3,4,5,6,7], shapeSet:[0,1,2,3,4,5,6,7], letters:['C','H','K','L','Q','R','S','T']};
 const LS_KEY = 'dnb-studio-v1';
 
@@ -669,6 +671,31 @@ function playDevice(l){
   }catch(e){ return playBuiltin(l); }
   setTimeout(() => { if(!started){ try{ speechSynthesis.cancel(); }catch(e){} playBuiltin(l); } }, 350);
 }
+function playSfx(kind){
+  kind = kind || ST().sfx; if(!actx || kind === 'off') return;
+  try{
+    if(actx.state === 'suspended') actx.resume();
+    const t = actx.currentTime + 0.005, vol = Math.max(0.0001, ST().sfxVol * ST().volume);
+    const out = actx.createGain(); out.connect(actx.destination);
+    const tone = (type, f0, f1, dur, peak, at = 0.004) => {
+      const o = actx.createOscillator(), g = actx.createGain(); o.type = type;
+      o.frequency.setValueAtTime(f0, t); if(f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur*0.8);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak*vol, t + at); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+    };
+    if(kind === 'pop'){ tone('sine', 920, 420, 0.09, 0.55); tone('triangle', 1840, 900, 0.05, 0.12); }
+    else if(kind === 'click'){
+      const n = Math.floor(actx.sampleRate*0.03), b = actx.createBuffer(1, n, actx.sampleRate), d = b.getChannelData(0);
+      for(let k=0;k<n;k++) d[k] = (Math.random()*2-1) * Math.pow(1 - k/n, 4);
+      const src = actx.createBufferSource(), f = actx.createBiquadFilter(), g = actx.createGain();
+      f.type = 'bandpass'; f.frequency.value = 2400; f.Q.value = 1.2; g.gain.value = 0.9*vol;
+      src.buffer = b; src.connect(f); f.connect(g); g.connect(out); src.start(t);
+      tone('sine', 1400, 1400, 0.03, 0.2);
+    }
+    else if(kind === 'chime'){ tone('sine', 1318.5, 1318.5, 0.35, 0.35, 0.006); tone('sine', 2637, 2637, 0.2, 0.08, 0.006); }
+    else if(kind === 'soft'){ tone('sine', 523.25, 523.25, 0.16, 0.4, 0.02); }
+  }catch(e){}
+}
 function playSound(i){
   const l = String(ST().soundLetters[i] || 'c').toLowerCase();
   if(ST().voiceEngine === 'device') playDevice(l); else playBuiltin(l);
@@ -719,7 +746,8 @@ function runTrial(i){
   const v = {}; R.mods.forEach(m => v[m] = R.seq[m][i]);
   const cell = R.mods.includes('pos') ? POS_CELLS[v.pos] : 4;
   cellEl(cell).innerHTML = stimHTML(v);
-  if(R.mods.includes('sound')) playSound(v.sound);
+  playSfx();
+  if(R.mods.includes('sound')){ const sv = v.sound; if(ST().sfx === 'off') playSound(sv); else R.timers.push(setTimeout(() => { if(R.state === 'running') playSound(sv); }, 90)); }
   updateRunInfo(i);
   R.timers.push(setTimeout(() => { const s = $('#grid .stim'); if(s) s.classList.add('out'); }, R.cfg.showMs));
   const gen = R.gen;
@@ -1052,6 +1080,7 @@ function setSound(str){
 }
 $('#soundInp').addEventListener('change', e => setSound(e.target.value));
 $$('[data-sp]').forEach(b => b.onclick = () => setSound(b.dataset.sp));
+$('#sfxTest').onclick = () => { ensureAudio(); setTimeout(() => playSfx(ST().sfx === 'off' ? 'pop' : ST().sfx), 60); };
 $('#sndTest').onclick = () => { ensureAudio(); const L = ST().soundLetters; let k = 0; const nx = () => { if(k < Math.min(4, L.length)){ playSound(k++); setTimeout(nx, 900); } }; nx(); };
 $$('[data-lp]').forEach(b => b.onclick = () => setLetters(b.dataset.lp));
 $$('[data-set]').forEach(el => el.addEventListener('change', () => {
@@ -1061,9 +1090,9 @@ $$('[data-set]').forEach(el => el.addEventListener('change', () => {
   else if(el.tagName === 'SELECT') st[k] = el.value;
   else {
     let v = +el.value; if(!isFinite(v)) v = DEFAULT_SETTINGS[k];
-    const lim = {minutes:[0.1,Infinity], n:[1,Infinity], up:[1,100], down:[0,99], matchRate:[5,80], intervalMs:[300,60000], showMs:[100,60000], trialsBase:[2,Infinity], dailyGoal:[1,1000], volume:[0.1,1]}[k];
+    const lim = {minutes:[0.1,Infinity], n:[1,Infinity], up:[1,100], down:[0,99], matchRate:[5,80], intervalMs:[300,60000], showMs:[100,60000], trialsBase:[2,Infinity], dailyGoal:[1,1000], volume:[0.1,1], sfxVol:[0.05,1]}[k];
     if(lim) v = clamp(v, lim[0], lim[1]);
-    if(k === 'minutes') v = Math.round(v*10)/10; else if(k !== 'volume') v = Math.round(v);
+    if(k === 'minutes') v = Math.round(v*10)/10; else if(k !== 'volume' && k !== 'sfxVol') v = Math.round(v);
     if(k === 'down' && v >= st.up) v = st.up - 1;
     if(k === 'up' && v <= st.down) v = st.down + 1;
     if(k === 'showMs' && v > st.intervalMs - 50) v = st.intervalMs - 50;
