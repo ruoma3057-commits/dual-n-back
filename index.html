@@ -77,6 +77,7 @@ main{max-width:1180px;margin:0 auto;padding:28px 26px calc(80px + env(safe-area-
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r2);padding:22px}
+.card h3 .info{float:right;text-transform:none;letter-spacing:0;font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .card h3{margin:0 0 14px;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:600;text-transform:uppercase}
 .btn{border:1px solid var(--line2);background:var(--panel2);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.15s}
 .btn:hover{border-color:var(--accent)}
@@ -164,11 +165,13 @@ body:not(.running) .mob-pause{visibility:hidden}
 .tile .v small{font-size:13px;color:var(--muted);font-weight:500;margin-left:2px}
 .charts{display:grid;grid-template-columns:2fr 1fr;gap:16px}
 .charts .wide,.sets .wide2{grid-column:1/-1}
+.charts>*,.sets>*,.train>*{min-width:0}
+.chartbox canvas{max-width:100%}
 .chartbox{position:relative;height:280px}
 .chartbox.s{height:240px}
 .empty{color:var(--dim);font-size:13px;text-align:center;padding:60px 0}
 .heat{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px}
-.heat .col{display:flex;flex-direction:column;gap:3px;flex:1;min-width:10px}
+.heat .col{display:flex;flex-direction:column;gap:3px;flex:1;min-width:10px;max-width:18px}
 .heat .d{width:100%;aspect-ratio:1;border-radius:3px;background:var(--line)}
 .heat .d.x{background:transparent}
 .heat .d.h1,.legend .h1{background:var(--h1)}.heat .d.h2,.legend .h2{background:var(--h2)}.heat .d.h3,.legend .h3{background:var(--h3)}.heat .d.h4,.legend .h4{background:var(--h4)}.legend .h0{background:var(--line)}
@@ -251,6 +254,12 @@ textarea.io{width:100%;min-height:120px;background:var(--bg2);border:1px solid v
 .verdict.down{background:rgba(248,113,113,.12);color:var(--badText)}
 .verdict.same{background:var(--panel2);color:var(--muted)}
 .mb{display:flex;gap:10px;justify-content:flex-end;margin-top:22px;flex-wrap:wrap}
+.rate{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:4px 0 14px;padding:14px 16px;border-radius:16px;background:var(--acc-a);border:1px solid var(--acc-b)}
+.rate .k{font-size:12px;color:var(--muted)}
+.rate .rv{font-size:38px;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.rate .rd{font-size:12.5px;color:var(--muted);text-align:right;line-height:1.7}
+.rate .rd b{color:var(--text)}
+.pb{color:var(--accent2);margin-left:4px}
 .newach{margin-top:14px;padding:12px 14px;border-radius:14px;background:rgba(94,234,212,.08);border:1px solid rgba(94,234,212,.3);font-size:13px}
 .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line2);padding:12px 18px;border-radius:12px;font-size:13.5px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:90vw}
 .toast.on{opacity:1;transform:translateX(-50%)}
@@ -355,7 +364,7 @@ body.running .start-ov{display:none}
           <div class="row"><span>レベル <b class="num" id="lvVal">1</b></span><span class="num" id="xpTxt">0 / 60 XP</span></div>
           <div class="xpbar"><i id="xpBar" style="width:0"></i></div>
           <div class="row" style="margin-top:14px"><span>最高 N</span><b class="num" id="bestN">—</b></div>
-          <div class="row" style="margin-top:8px"><span>前回スコア</span><b class="num" id="lastScore">—</b></div>
+          <div class="row" style="margin-top:8px"><span>前回の実力スコア</span><b class="num" id="lastScore">—</b></div>
         </div>
       </div>
 
@@ -383,12 +392,13 @@ body.running .start-ov{display:none}
       <div class="seg" id="range"><button data-r="7">7日</button><button data-r="30" class="on">30日</button><button data-r="90">90日</button><button data-r="0">全期間</button></div></div>
     <div class="tiles" id="tiles"></div>
     <div class="charts">
-      <div class="card wide"><h3>N と スコアの推移</h3><div class="chartbox" id="cbProg"><canvas id="chProg"></canvas></div></div>
+      <div class="card wide"><h3>実力スコアの推移 <span class="info" id="rateInfoBtn">計算方法</span></h3><div class="chartbox" id="cbRate"><canvas id="chRate"></canvas></div><div class="empty" id="rateEmpty" style="display:none;padding:30px 0">記録がたまるとここに推移が表示されます。</div></div>
+      <div class="card wide"><h3>N と 正答率の推移</h3><div class="chartbox" id="cbProg"><canvas id="chProg"></canvas></div></div>
       <div class="card"><h3>日別トレーニング時間（分）</h3><div class="chartbox s"><canvas id="chTime"></canvas></div></div>
       <div class="card"><h3>種類別スコア</h3><div class="chartbox s"><canvas id="chMod"></canvas></div></div>
       <div class="card wide"><h3>継続カレンダー（直近26週）</h3><div class="heat" id="heat"></div>
         <div class="legend">少<span class="d h0"></span><span class="d h1"></span><span class="d h2"></span><span class="d h3"></span><span class="d h4"></span>目標達成</div></div>
-      <div class="card wide"><h3>セッション履歴</h3><div style="overflow-x:auto"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>スコア</th><th>時間</th><th>次回</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
+      <div class="card wide"><h3>セッション履歴</h3><div style="overflow-x:auto"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>実力</th><th>正答率</th><th>時間</th><th>次回</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
     </div>
   </section>
 
@@ -522,7 +532,7 @@ function loadLocal(){
     const d = JSON.parse(raw); if(d && d.profile){ S.profile = normProfile(d.profile); S.sessions = (Array.isArray(d.sessions) ? d.sessions : []).map(x => { delete x.uploading; return x; }); } }catch(e){}
 }
 function normProfile(p){ p = JSON.parse(JSON.stringify(p || {})); const np = {...newProfile(), ...p}; const ps = p.settings||{}; np.settings = {...DEFAULT_SETTINGS, ...ps}; if(!ps.letters && ps.letterSet && LETTER_SETS[ps.letterSet]) np.settings.letters = LETTER_SETS[ps.letterSet].slice(); if(!ps.lenMode && ps.trialsBase) np.settings.lenMode = 'trials'; if(!(ps.v >= 2)){ if(np.settings.intervalMs === 3000) np.settings.intervalMs = 2000; np.settings.v = 2; } np.achievements = p.achievements || {}; return np; }
-function cleanSession(s){ const o = {...s}; delete o.synced; delete o.uploading; return o; }
+function cleanSession(s){ const o = {...s}; delete o.synced; delete o.uploading; delete o._r; return o; }
 
 let chain = Promise.resolve();
 function enqueue(fn){ chain = chain.then(fn).catch(e => { console.warn(e); setSync('err'); }); return chain; }
@@ -907,7 +917,7 @@ function renderTrainSide(){
   $('#lvVal').textContent = lv.L; $('#hdrLvl').textContent = 'Lv ' + lv.L;
   $('#xpTxt').textContent = lv.cur + ' / ' + lv.need + ' XP'; $('#xpBar').style.width = (lv.cur/lv.need*100) + '%';
   $('#bestN').textContent = ctx.bestN ? 'N=' + ctx.bestN : '—';
-  $('#lastScore').textContent = last ? last.score + '%' : '—';
+  $('#lastScore').textContent = last ? (last.partial ? last.score + '%' : RS(last) + '（' + last.score + '%）') : '—';
   if(R.state === 'idle') renderResp(false);
 }
 
@@ -917,9 +927,11 @@ function renderStats(){
   const list = inRange(), st = stats(list), all = achContext();
   const last10 = list.slice(-10); const avgN = last10.length ? (last10.reduce((a,s)=>a+s.n,0)/last10.length).toFixed(1) : '—';
   const avgS = list.length ? (list.reduce((a,s)=>a+s.score,0)/list.length).toFixed(1) : '—';
+  const full = list.filter(s => !s.partial), bestR = full.reduce((a,s)=>Math.max(a,RS(s)),0);
+  const l10 = full.slice(-10), avgR = l10.length ? Math.round(l10.reduce((a,s)=>a+RS(s),0)/l10.length) : '—';
   $('#tiles').innerHTML = [
-    ['最高 N', st.bestN || '—'], ['平均 N（直近10）', avgN], ['セッション', st.count + '<small>回</small>'],
-    ['トレーニング時間', fmtMin(st.totalSec)], ['平均スコア', avgS + (list.length?'<small>%</small>':'')], ['連続日数（最長）', all.cur + '<small>日 / ' + all.best + '</small>'],
+    ['実力スコア（直近10平均）', avgR], ['実力スコア（最高）', bestR || '—'], ['最高 N', st.bestN || '—'],
+    ['セッション', st.count + '<small>回</small>'], ['トレーニング時間', fmtMin(st.totalSec)], ['連続日数（最長）', all.cur + '<small>日 / ' + all.best + '</small>'],
   ].map(([k,v]) => `<div class="tile"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('');
   renderHeat(all.days);
   renderHist(list);
@@ -939,6 +951,15 @@ function renderStats(){
     {label:'スコア %', data:pts.map(p=>p.score), yAxisID:'y1', borderColor:A2, borderWidth:1.6, pointRadius:pts.length>40?0:2.5, tension:.3, pointBackgroundColor:A2}]},
     options:{maintainAspectRatio:false, interaction:{mode:'index', intersect:false}, plugins:{legend:{labels:{boxWidth:10, boxHeight:10, usePointStyle:true}}, tooltip:tip},
       scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:8, maxRotation:0}}, y:{beginAtZero:true, ticks:{precision:0}, title:{display:true, text:'N'}, suggestedMax:Math.max(3, st.bestN+1)}, y1:{position:'right', min:0, max:100, grid:{drawOnChartArea:false}, title:{display:true, text:'%'}}}}});
+  // rating
+  { const rs = list.filter(s => !s.partial); const rv = rs.map(RS);
+    const ma = rv.map((_,i) => { const w = rv.slice(Math.max(0,i-6), i+1); return Math.round(w.reduce((a,b)=>a+b,0)/w.length); });
+    $('#rateEmpty').style.display = rs.length ? 'none' : ''; $('#cbRate').style.display = rs.length ? '' : 'none';
+    if(rs.length) charts.r = new Chart($('#chRate'), {type:'line', data:{labels:rs.map(s=>fmtDT(s.ts)), datasets:[
+      {label:'実力スコア', data:rv, borderColor:A1, backgroundColor:A1, showLine:false, pointRadius:rs.length>60?2:3.5},
+      {label:'移動平均（7回）', data:ma, borderColor:A2, borderWidth:2.5, pointRadius:0, tension:.35}]},
+      options:{maintainAspectRatio:false, interaction:{mode:'index', intersect:false}, plugins:{legend:{labels:{boxWidth:10, boxHeight:10, usePointStyle:true}}, tooltip:{...tip, callbacks:{afterBody:items => { const s = rs[items[0].dataIndex], r = rating(s); return `N=${s.n}・正答率${s.score}%・${s.mods.length}種類・${fmtNum((s.intervalMs||2000)/1000)}秒\n実力N ${r.effN.toFixed(2)}`; }}}},
+        scales:{x:{grid:{display:false}, ticks:{maxTicksLimit:8, maxRotation:0}}, y:{beginAtZero:true}}}}); }
   // time per day
   const nd = range || Math.max(14, Math.min(120, Math.ceil((Date.now() - (S.sessions[0]?.ts||Date.now()))/864e5)+1));
   const tl = [], tv = []; for(let i=nd-1;i>=0;i--){ const d = new Date(); d.setDate(d.getDate()-i); const k = dayKey(d); tl.push((d.getMonth()+1)+'/'+d.getDate()); tv.push(Math.round((all.days.get(k)?.sec||0)/6)/10); }
@@ -970,8 +991,8 @@ function renderHist(list){
   const rows = list.slice(-40).reverse();
   $('#hist').innerHTML = rows.length ? rows.map(s => {
     const cls = s.nextN > s.n ? 'up' : s.nextN < s.n ? 'down' : 'same'; const arrow = s.nextN > s.n ? '▲ ' : s.nextN < s.n ? '▼ ' : '';
-    return `<tr><td class="num">${fmtDT(s.ts)}</td><td class="num"><b>${s.n}</b></td><td>${s.mods.map(m=>MODS[m].label).join('・')}</td><td class="num">${s.score}%</td><td class="num">${Math.round(s.dur/60*10)/10}分</td><td class="num ${cls}">${arrow}N=${s.nextN}</td><td><button class="x" data-del="${esc(s.id)}" title="削除">×</button></td></tr>`;
-  }).join('') : `<tr><td colspan="7"><div class="empty">まだ記録がありません。トレーニングを始めると、ここに履歴が表示されます。</div></td></tr>`;
+    return `<tr><td class="num">${fmtDT(s.ts)}</td><td class="num"><b>${s.n}</b></td><td>${s.mods.map(m=>MODS[m].label).join('・')}</td><td class="num"><b>${s.partial?'—':RS(s)}</b></td><td class="num">${s.score}%</td><td class="num">${Math.round(s.dur/60*10)/10}分</td><td class="num ${cls}">${arrow}N=${s.nextN}</td><td><button class="x" data-del="${esc(s.id)}" title="削除">×</button></td></tr>`;
+  }).join('') : `<tr><td colspan="8"><div class="empty">まだ記録がありません。トレーニングを始めると、ここに履歴が表示されます。</div></td></tr>`;
 }
 function renderAch(){
   const defs = achDefs(), got = S.profile.achievements;
@@ -992,14 +1013,35 @@ function renderSettings(){
 }
 function renderAll(){ applyTheme(); renderTrainSide(); renderBackupInfo(); renderSettings(); renderAch(); if(curView === 'stats') renderStats(); }
 
+/* ---------- 実力スコア ---------- */
+// 実力N：スコア80%で「N」、50%で「N−1」となる連続値（自動調整の昇格・降格ラインと一致）
+// 判定回数が少ない回は正答率を50%側に寄せて、たまたまの高得点を割り引く
+function rating(s){
+  let H = 0, M = 0, F = 0;
+  if(s.per) Object.values(s.per).forEach(p => { H += p.h||0; M += p.m||0; F += p.fa||0; });
+  const d = H + M + F;
+  const acc = d ? (H + 1.5) / (d + 3) * 100 : (s.score || 0);
+  const effN = Math.min(s.n + 2/3, Math.max(Math.max(0, s.n - 2), s.n - 1 + (acc - 50) / 30));
+  const m = (s.mods || []).length || 2;
+  const modF = Math.sqrt(m / 2);                                                   // 2種類=1.00, 3=1.22, 4=1.41, 5=1.58
+  const tempoF = Math.min(1.5, Math.max(0.7, Math.pow(2000 / (s.intervalMs || 2000), 0.2)));  // 2秒=1.00, 1秒=1.15, 3秒=0.92
+  return {score: Math.round(effN * modF * tempoF * 100), effN: Math.round(effN * 100) / 100, acc: Math.round(acc * 10) / 10, modF, tempoF};
+}
+const RS = s => (s._r || (s._r = rating(s))).score;
+
 /* ---------- result modal ---------- */
 function openModal(html){ $('#modal').innerHTML = html; $('#scrim').classList.add('on'); }
 function closeModal(){ $('#scrim').classList.remove('on'); }
 function showResult(s, newA, lvUp){
+  const r = rating(s), prev = S.sessions.filter(x => x !== s && !x.partial), best = prev.reduce((a,x) => Math.max(a, RS(x)), 0);
+  const recent = prev.slice(-10), avg = recent.length ? Math.round(recent.reduce((a,x)=>a+RS(x),0)/recent.length) : null;
+  const pb = !s.partial && r.score > best && prev.length > 0;
   const v = s.nextN > s.n ? ['up', `昇格！ 次回は N=${s.nextN}`] : s.nextN < s.n ? ['down', `次回は N=${s.nextN} で立て直し`] : ['same', s.adaptive ? `次回も N=${s.n}` : '手動モード（N 固定）'];
   const rows = s.mods.map(m => { const p = s.per[m]; return `<tr><td>${MODS[m].label}</td><td class="num">${p.score}%</td><td class="num">${p.h}</td><td class="num">${p.m}</td><td class="num">${p.fa}</td></tr>`; }).join('');
   openModal(`<h2>セッション完了</h2><div class="sub">N=${s.n} ・ ${s.mods.map(m=>MODS[m].label).join('・')} ・ ${s.total || s.trials} 回（判定 ${s.trials} 回）</div>
     <div class="res-score"><div class="v num">${s.score}</div><div class="u">%</div><div style="margin-left:auto;text-align:right;font-size:13px;color:var(--muted)">+${s.xp} XP${lvUp?`<br><b style="color:var(--accent2)">レベルアップ！ Lv ${levelOf(S.profile.xp).L}</b>`:''}</div></div>
+    <div class="rate"><div><div class="k">実力スコア${pb?' <b class="pb">自己ベスト！</b>':''}</div><div class="rv num">${r.score}</div></div>
+      <div class="rd num">実力N <b>${r.effN.toFixed(2)}</b><br>${avg!=null?`直近10回平均 <b>${avg}</b>（${r.score>=avg?'+':''}${r.score-avg}）`:'初回の記録'}</div></div>
     <span class="verdict ${s.partial?'same':v[0]}">${s.partial?'途中終了の記録（N は変更なし）':v[1]}</span>
     <div class="sub" id="saveState" style="margin:-6px 0 12px">${cloud.col ? '保存中…' : 'この端末に保存しました'}</div>
     <table><thead><tr><th>種類</th><th>スコア</th><th>正解</th><th>見逃し</th><th>誤反応</th></tr></thead><tbody>${rows}</tbody></table>
@@ -1174,6 +1216,14 @@ $('#resetBtn').onclick = () => confirmDlg('全データを消去しますか？'
   if(cloud.col){ old.forEach(s => enqueue(async () => { await cloud.col.doc(s.id).delete(); })); enqueue(writeProfile); }
 });
 
+$('#rateInfoBtn').onclick = () => openModal(`<h2>実力スコアの計算方法</h2><div class="note" style="margin-top:12px;line-height:1.9">
+  <b>実力スコア ＝ 実力N × 種類係数 × テンポ係数 × 100</b><br><br>
+  <b>① 実力N</b>：正答率80%でちょうど N、50%で N−1 になる値です（自動調整の昇格・降格ラインと同じ）。<br>例：N=3で80% → 3.00、N=4で50% → 3.00（同じ実力とみなす）、N=3で95% → 3.50<br><br>
+  <b>② 判定回数の補正</b>：正答率は「(正解+1.5) ÷ (判定+3)」で計算し、判定回数が少ない回の高得点を少し割り引きます。回数が多いほど実際の正答率に近づきます。<br><br>
+  <b>③ 種類係数</b>：√(種類数÷2)。1種類 0.71、2種類 1.00、3種類 1.22、4種類 1.41、5種類 1.58<br><br>
+  <b>④ テンポ係数</b>：(2秒÷出現間隔)^0.2。1秒 1.15、2秒 1.00、3秒 0.92<br><br>
+  目安：Dual 2-Back を80%でこなすと 200、Dual 3-Back で 300。途中終了の記録は計算に含めません。</div>
+  <div class="mb"><button class="btn primary" data-close>閉じる</button></div>`);
 $('#scrim').addEventListener('click', e => { if(e.target.id === 'scrim' || e.target.closest('[data-close]')) closeModal(); });
 
 document.addEventListener('keydown', e => {
