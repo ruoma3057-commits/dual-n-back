@@ -95,6 +95,8 @@ kbd{font-family:'Inter';font-size:11px;padding:2px 6px;border-radius:6px;border:
 .stage-top{width:100%;max-width:480px;display:flex;align-items:center;gap:14px}
 .prog{flex:1;height:6px;border-radius:99px;background:var(--line);overflow:hidden}
 .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+.nbadge{flex:none;font-size:15px;font-weight:800;padding:6px 12px;border-radius:10px;background:var(--acc-a);border:1px solid var(--acc-b);color:var(--accent);letter-spacing:.02em}
+body.running .nbadge{font-size:17px}
 .mob-pause{display:none}
 body:not(.running) .mob-pause{visibility:hidden}
 .stage-top .num{font-size:13px;color:var(--muted);min-width:64px;text-align:right}
@@ -326,7 +328,7 @@ body.running .start-ov{display:none}
   <section class="view on" id="v-train">
     <div class="train">
       <div class="stage">
-        <div class="stage-top"><div class="prog"><i id="prog"></i></div><div class="num" id="trialTxt">— / —</div><button class="btn sm mob-pause" id="mobPause" style="display:none">Ⅱ</button></div>
+        <div class="stage-top"><span class="nbadge num" id="nBadge">N=2</span><div class="prog"><i id="prog"></i></div><div class="num" id="trialTxt">— / —</div><button class="btn sm mob-pause" id="mobPause" style="display:none">Ⅱ</button></div>
         <div class="gridwrap">
           <div class="grid" id="grid"></div>
           <button class="start-ov" id="gridStart"><span class="pl">▶</span><span>タップして開始</span><small id="gridStartInfo"></small></button>
@@ -397,7 +399,7 @@ body.running .start-ov{display:none}
       <div class="card"><h3>種類別スコア</h3><div class="chartbox s"><canvas id="chMod"></canvas></div></div>
       <div class="card wide"><h3>継続カレンダー（直近26週）</h3><div class="heat" id="heat"></div>
         <div class="legend">少<span class="d h0"></span><span class="d h1"></span><span class="d h2"></span><span class="d h3"></span><span class="d h4"></span>目標達成</div></div>
-      <div class="card wide"><h3>セッション履歴</h3><div style="overflow-x:auto"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>実力</th><th>正答率</th><th>時間</th><th>次回</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
+      <div class="card wide"><h3>セッション履歴</h3><div style="overflow-x:auto"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>実力</th><th>正答率</th><th>時間</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
     </div>
   </section>
 
@@ -415,9 +417,6 @@ body.running .start-ov{display:none}
         <h3>難易度</h3>
         <div class="field"><div class="l">N（何回前と比べるか）<small>上限なし。1以上の整数を自由に設定できます。</small></div>
           <div class="nfield"><button class="btn sm" data-nstep="-1">−</button><input class="inp num" type="number" min="1" step="1" data-set="n" style="width:90px"><button class="btn sm" data-nstep="1">+</button></div></div>
-        <div class="field"><div class="l">自動調整（アダプティブ）<small>スコアに応じて次回の N を自動で上げ下げします。</small></div><label class="sw"><input type="checkbox" data-set="adaptive"><span></span></label></div>
-        <div class="field"><div class="l">昇格ライン（%）<small>この値以上で N+1</small></div><input class="inp num" type="number" min="1" max="100" data-set="up"></div>
-        <div class="field"><div class="l">降格ライン（%）<small>この値未満で N−1</small></div><input class="inp num" type="number" min="0" max="99" data-set="down"></div>
         <div class="field"><div class="l">一致の割合（%）<small>各種類で「一致」が出る試行の割合</small></div><input class="inp num" type="number" min="5" max="80" data-set="matchRate"></div>
       </div>
       <div class="card">
@@ -496,7 +495,7 @@ const SHAPES = ['circle','square','triangle','diamond','star','hexagon','cross',
 const SHAPE_NAMES = ['円','正方形','三角','ひし形','星','六角形','十字','ハート','五角形','リング','三日月','矢印'];
 const LETTER_SETS = {latin:['C','H','K','L','Q','R','S','T'], kana:['あ','か','さ','た','な','は','ま','ら'], digit:['1','2','3','4','5','6','7','8']};
 const POS_CELLS = [0,1,2,3,4,5,6,7,8];
-const DEFAULT_SETTINGS = {n:2, mods:['pos','sound'], adaptive:true, up:80, down:50, matchRate:30,
+const DEFAULT_SETTINGS = {n:2, mods:['pos','sound'], adaptive:false, up:80, down:50, matchRate:30,
   trialsBase:20, addN:false, intervalMs:2000, showMs:500, feedback:true, volume:0.6,
   dailyGoal:5, v:2, sfx:'pop', sfxVol:0.5, voiceEngine:'builtin', theme:'auto', soundLetters:['C','H','K','L','Q','R','S','T'], lenMode:'time', minutes:2,
   colorSet:[0,1,2,3,4,5,6,7], shapeSet:[0,1,2,3,4,5,6,7], letters:['C','H','K','L','Q','R','S','T']};
@@ -530,7 +529,7 @@ function loadLocal(){
   try{ const raw = localStorage.getItem(LS_KEY); if(!raw) return;
     const d = JSON.parse(raw); if(d && d.profile){ S.profile = normProfile(d.profile); S.sessions = (Array.isArray(d.sessions) ? d.sessions : []).map(x => { delete x.uploading; return x; }); } }catch(e){}
 }
-function normProfile(p){ p = JSON.parse(JSON.stringify(p || {})); const np = {...newProfile(), ...p}; const ps = p.settings||{}; np.settings = {...DEFAULT_SETTINGS, ...ps}; if(!ps.letters && ps.letterSet && LETTER_SETS[ps.letterSet]) np.settings.letters = LETTER_SETS[ps.letterSet].slice(); if(!ps.lenMode && ps.trialsBase) np.settings.lenMode = 'trials'; if(!(ps.v >= 2)){ if(np.settings.intervalMs === 3000) np.settings.intervalMs = 2000; np.settings.v = 2; } np.achievements = p.achievements || {}; return np; }
+function normProfile(p){ p = JSON.parse(JSON.stringify(p || {})); const np = {...newProfile(), ...p}; const ps = p.settings||{}; np.settings = {...DEFAULT_SETTINGS, ...ps}; np.settings.adaptive = false; if(!ps.letters && ps.letterSet && LETTER_SETS[ps.letterSet]) np.settings.letters = LETTER_SETS[ps.letterSet].slice(); if(!ps.lenMode && ps.trialsBase) np.settings.lenMode = 'trials'; if(!(ps.v >= 2)){ if(np.settings.intervalMs === 3000) np.settings.intervalMs = 2000; np.settings.v = 2; } np.achievements = p.achievements || {}; return np; }
 function cleanSession(s){ const o = {...s}; delete o.synced; delete o.uploading; delete o._r; return o; }
 
 let chain = Promise.resolve();
@@ -737,7 +736,7 @@ function startSession(){
   document.body.classList.add('running');
   $('#sideIdle').style.display='none'; $('#sideRun').style.display='';
   try{ window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); }catch(e){}
-  $('#runN').textContent = 'N=' + n; $('#ruleN').textContent = n;
+  $('#runN').textContent = 'N=' + n; $('#nBadge').textContent = 'N=' + n; $('#ruleN').textContent = n;
   $('#keyLegend').innerHTML = mods.map(m=>`<span class="chip on">${MODS[m].label} <kbd>${MODS[m].key}</kbd></span>`).join('');
   renderResp(true); updateRunInfo(-1);
   let c = 3; clearGrid();
@@ -806,7 +805,7 @@ function stopUI(){
 function abort(){
   const scored = Math.max(0, R.i - R.n);
   if(scored < 3){ stopUI(); toast('セッションを中止しました（判定が3回未満のため記録なし）'); renderTrainSide(); return; }
-  openModal(`<h2>ここまでの記録を保存しますか？</h2><div class="sub" style="margin-top:8px;line-height:1.7">${R.i} 回中 ${scored} 回が判定済みです。途中終了の記録として保存します（N の自動調整は行いません）。</div>
+  openModal(`<h2>ここまでの記録を保存しますか？</h2><div class="sub" style="margin-top:8px;line-height:1.7">${R.i} 回中 ${scored} 回が判定済みです。途中終了の記録として保存します。</div>
     <div class="mb"><button class="btn danger" id="discardBtn">保存せずに終了</button><button class="btn primary" id="savePartBtn">保存して終了</button></div>`);
   $('#discardBtn').onclick = () => { closeModal(); stopUI(); renderTrainSide(); toast('記録せずに終了しました'); };
   $('#savePartBtn').onclick = () => { closeModal(); R.state = 'running'; try{ finishSessionInner(true); }catch(e){ console.error(e); stopUI(); renderTrainSide(); toast('保存中にエラーが発生しました'); } };
@@ -819,10 +818,9 @@ function finishSessionInner(partial){
   R.mods.forEach(m => { const t = R.tally[m]; H+=t.h; M+=t.m; F+=t.fa; const d = t.h+t.m+t.fa; per[m] = {...t, score: d ? Math.round(t.h/d*1000)/10 : 100}; });
   const score = (H+M+F) ? Math.round(H/(H+M+F)*1000)/10 : 100;
   let nextN = R.n;
-  if(st.adaptive && !partial){ if(score >= st.up) nextN = R.n + 1; else if(score < st.down) nextN = Math.max(1, R.n - 1); }
   const xp = Math.round(5 + (score/100) * R.n * 10 * (1 + 0.5*(R.mods.length-2)) * (scored/20));
   const s = {id:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(), n:R.n, mods:R.mods.slice(), trials:scored, total:shown, partial:!!partial,
-    intervalMs:R.cfg.intervalMs, showMs:R.cfg.showMs, score, per, dur: Math.round(shown*R.cfg.intervalMs/1000), nextN, adaptive:st.adaptive && !partial, xp:Math.max(1,xp), synced:false};
+    intervalMs:R.cfg.intervalMs, showMs:R.cfg.showMs, score, per, dur: Math.round(shown*R.cfg.intervalMs/1000), nextN, adaptive:false, xp:Math.max(1,xp), synced:false};
   const prevLv = levelOf(S.profile.xp).L;
   S.sessions.push(s); S.profile.xp += s.xp; st.n = nextN; saveLocal();
   let newA = []; try{ newA = checkAch(s); }catch(e){ console.error(e); }
@@ -863,17 +861,17 @@ function achDefs(){
     {id:'h1', b:'1h', n:'1時間', d:'累計トレーニング1時間', t:x=>x.totalSec>=3600},
     {id:'h10', b:'10h', n:'10時間', d:'累計トレーニング10時間', t:x=>x.totalSec>=36000},
     {id:'perfect', b:'★', n:'パーフェクト', d:'N≥2 でスコア100%', t:(x,s)=>s && s.n>=2 && s.score>=100},
-    {id:'tri', b:'×3', n:'トリプル', d:'3種類同時で降格ライン以上', t:(x,s)=>s && s.mods.length>=3 && s.score>=ST().down},
-    {id:'quad', b:'×4', n:'クアッド', d:'4種類同時で降格ライン以上', t:(x,s)=>s && s.mods.length>=4 && s.score>=ST().down},
-    {id:'penta', b:'×5', n:'フルモダリティ', d:'5種類同時で降格ライン以上', t:(x,s)=>s && s.mods.length>=5 && s.score>=ST().down},
+    {id:'tri', b:'×3', n:'トリプル', d:'3種類同時で正答率50%以上', t:(x,s)=>s && s.mods.length>=3 && s.score>=50},
+    {id:'quad', b:'×4', n:'クアッド', d:'4種類同時で正答率50%以上', t:(x,s)=>s && s.mods.length>=4 && s.score>=50},
+    {id:'penta', b:'×5', n:'フルモダリティ', d:'5種類同時で正答率50%以上', t:(x,s)=>s && s.mods.length>=5 && s.score>=50},
   ];
-  [3,4,5,6,7,8,10,12,15,20].forEach(k => A.push({id:'n'+k, b:'N'+k, n:'N='+k+' 到達', d:`N=${k} で昇格ライン以上のスコア`, t:(x)=>x.passN>=k}));
+  [3,4,5,6,7,8,10,12,15,20].forEach(k => A.push({id:'n'+k, b:'N'+k, n:'N='+k+' 到達', d:`N=${k} で正答率80%以上`, t:(x)=>x.passN>=k}));
   return A;
 }
 function achContext(){
   const st = stats(); const sk = streaks(st.days); const goal = ST().dailyGoal;
   let goalDays = 0; st.days.forEach(d => { if(d.cnt >= goal) goalDays++; });
-  const passN = S.sessions.reduce((a,s) => s.score >= ST().up ? Math.max(a, s.n) : a, 0);
+  const passN = S.sessions.reduce((a,s) => s.score >= 80 ? Math.max(a, s.n) : a, 0);
   return {...st, best:sk.best, cur:sk.cur, goalDays, passN};
 }
 function checkAch(s){
@@ -890,7 +888,7 @@ function renderResp(enabled){
 }
 function renderTrainSide(){
   const st = ST(), mods = MOD_ORDER.filter(m => st.mods.includes(m));
-  $('#nVal').textContent = st.n;
+  $('#nVal').textContent = st.n; if(R.state === 'idle') $('#nBadge').textContent = 'N=' + st.n;
   $('#modChips').innerHTML = MOD_ORDER.map(m => `<span class="chip tg ${mods.includes(m)?'on':''}" data-mod="${m}" title="クリックで切り替え">${MODS[m].label}</span>`).join('');
   const {trials, total:tot} = plan(st);
   const name = ['Single','Dual','Triple','Quad','Penta'][mods.length-1] || '—';
@@ -910,7 +908,6 @@ function renderTrainSide(){
   else if(cnt < goal) msg = `目標まであと ${goal-cnt} セッション。`;
   else msg = '今日の目標を達成しました。おつかれさまです。';
   const last = S.sessions[S.sessions.length-1];
-  if(last && cnt>0 && cnt<goal && last.nextN > last.n) msg += ' 前回昇格しています。この調子です。';
   $('#motMsg').textContent = msg;
   const lv = levelOf(S.profile.xp);
   $('#lvVal').textContent = lv.L; $('#hdrLvl').textContent = 'Lv ' + lv.L;
@@ -979,8 +976,8 @@ function renderHist(list){
   const rows = list.slice(-40).reverse();
   $('#hist').innerHTML = rows.length ? rows.map(s => {
     const cls = s.nextN > s.n ? 'up' : s.nextN < s.n ? 'down' : 'same'; const arrow = s.nextN > s.n ? '▲ ' : s.nextN < s.n ? '▼ ' : '';
-    return `<tr><td class="num">${fmtDT(s.ts)}</td><td class="num"><b>${s.n}</b></td><td>${s.mods.map(m=>MODS[m].label).join('・')}</td><td class="num"><b>${s.partial?'—':RS(s)}</b></td><td class="num">${s.score}%</td><td class="num">${Math.round(s.dur/60*10)/10}分</td><td class="num ${cls}">${arrow}N=${s.nextN}</td><td><button class="x" data-del="${esc(s.id)}" title="削除">×</button></td></tr>`;
-  }).join('') : `<tr><td colspan="8"><div class="empty">まだ記録がありません。トレーニングを始めると、ここに履歴が表示されます。</div></td></tr>`;
+    return `<tr><td class="num">${fmtDT(s.ts)}</td><td class="num"><b>${s.n}</b></td><td>${s.mods.map(m=>MODS[m].label).join('・')}</td><td class="num"><b>${s.partial?'—':RS(s)}</b></td><td class="num">${s.score}%</td><td class="num">${Math.round(s.dur/60*10)/10}分</td><td><button class="x" data-del="${esc(s.id)}" title="削除">×</button></td></tr>`;
+  }).join('') : `<tr><td colspan="7"><div class="empty">まだ記録がありません。トレーニングを始めると、ここに履歴が表示されます。</div></td></tr>`;
 }
 function renderAch(){
   const defs = achDefs(), got = S.profile.achievements;
@@ -1002,7 +999,7 @@ function renderSettings(){
 function renderAll(){ applyTheme(); renderTrainSide(); renderBackupInfo(); renderSettings(); renderAch(); if(curView === 'stats') renderStats(); }
 
 /* ---------- 実力スコア ---------- */
-// 実力N：スコア80%で「N」、50%で「N−1」となる連続値（自動調整の昇格・降格ラインと一致）
+// 実力N：スコア80%で「N」、50%で「N−1」となる連続値
 // 判定回数が少ない回は正答率を50%側に寄せて、たまたまの高得点を割り引く
 function rating(s){
   let H = 0, M = 0, F = 0;
@@ -1024,18 +1021,19 @@ function showResult(s, newA, lvUp){
   const r = rating(s), prev = S.sessions.filter(x => x !== s && !x.partial), best = prev.reduce((a,x) => Math.max(a, RS(x)), 0);
   const recent = prev.slice(-10), avg = recent.length ? Math.round(recent.reduce((a,x)=>a+RS(x),0)/recent.length) : null;
   const pb = !s.partial && r.score > best && prev.length > 0;
-  const v = s.nextN > s.n ? ['up', `昇格！ 次回は N=${s.nextN}`] : s.nextN < s.n ? ['down', `次回は N=${s.nextN} で立て直し`] : ['same', s.adaptive ? `次回も N=${s.n}` : '手動モード（N 固定）'];
+  const v = r.acc >= 80 ? ['up', `基準クリア（80%以上）。N=${s.n+1} に挑戦できます`] : r.acc < 50 ? ['down', `50%未満。N=${Math.max(1,s.n-1)} で固めるのも手です`] : ['same', `次回も N=${s.n} のまま`];
   const rows = s.mods.map(m => { const p = s.per[m]; return `<tr><td>${MODS[m].label}</td><td class="num">${p.score}%</td><td class="num">${p.h}</td><td class="num">${p.m}</td><td class="num">${p.fa}</td></tr>`; }).join('');
   openModal(`<h2>セッション完了</h2><div class="sub">N=${s.n} ・ ${s.mods.map(m=>MODS[m].label).join('・')} ・ ${s.total || s.trials} 回（判定 ${s.trials} 回）</div>
     <div class="res-score"><div class="v num">${s.score}</div><div class="u">%</div><div style="margin-left:auto;text-align:right;font-size:13px;color:var(--muted)">+${s.xp} XP${lvUp?`<br><b style="color:var(--accent2)">レベルアップ！ Lv ${levelOf(S.profile.xp).L}</b>`:''}</div></div>
     <div class="rate"><div><div class="k">実力スコア${pb?' <b class="pb">自己ベスト！</b>':''}</div><div class="rv num">${r.score}</div></div>
       <div class="rd num">実力N <b>${r.effN.toFixed(2)}</b><br>${avg!=null?`直近10回平均 <b>${avg}</b>（${r.score>=avg?'+':''}${r.score-avg}）`:'初回の記録'}</div></div>
-    <span class="verdict ${s.partial?'same':v[0]}">${s.partial?'途中終了の記録（N は変更なし）':v[1]}</span>
+    <span class="verdict ${s.partial?'same':v[0]}">${s.partial?'途中終了の記録':v[1]}</span>
     <div class="sub" id="saveState" style="margin:-6px 0 12px">${cloud.col ? '保存中…' : 'この端末に保存しました'}</div>
     <table><thead><tr><th>種類</th><th>スコア</th><th>正解</th><th>見逃し</th><th>誤反応</th></tr></thead><tbody>${rows}</tbody></table>
     ${newA.length ? `<div class="newach">新しい実績：<b>${newA.map(a=>esc(a.n)).join('、')}</b></div>` : ''}
-    <div class="mb"><button class="btn ghost" data-close>閉じる</button><button class="btn primary" id="againBtn">続けてもう1回 <kbd>Space</kbd></button></div>`);
+    <div class="mb"><button class="btn ghost" data-close>閉じる</button>${!s.partial && r.acc >= 80 ? `<button class="btn" id="upBtn">N=${s.n+1} で挑戦</button>` : ''}<button class="btn primary" id="againBtn">N=${ST().n} でもう1回 <kbd>Space</kbd></button></div>`);
   $('#againBtn').onclick = () => { closeModal(); startSession(); };
+  const ub = $('#upBtn'); if(ub) ub.onclick = () => { closeModal(); setN(s.n + 1); startSession(); };
 }
 function confirmDlg(title, body, okLabel, onOk){
   openModal(`<h2>${esc(title)}</h2><div class="sub" style="margin-top:8px;line-height:1.7">${body}</div><div class="mb"><button class="btn ghost" data-close>キャンセル</button><button class="btn danger" id="okBtn">${esc(okLabel)}</button></div>`);
@@ -1206,7 +1204,7 @@ $('#resetBtn').onclick = () => confirmDlg('全データを消去しますか？'
 
 $('#rateInfoBtn').onclick = () => openModal(`<h2>実力スコアの計算方法</h2><div class="note" style="margin-top:12px;line-height:1.9">
   <b>実力スコア ＝ 実力N × 種類係数 × テンポ係数 × 100</b><br><br>
-  <b>① 実力N</b>：正答率80%でちょうど N、50%で N−1 になる値です（自動調整の昇格・降格ラインと同じ）。<br>例：N=3で80% → 3.00、N=4で50% → 3.00（同じ実力とみなす）、N=3で95% → 3.50<br><br>
+  <b>① 実力N</b>：正答率80%でちょうど N、50%で N−1 になる値です。<br>例：N=3で80% → 3.00、N=4で50% → 3.00（同じ実力とみなす）、N=3で95% → 3.50<br><br>
   <b>② 判定回数の補正</b>：正答率は「(正解+1.5) ÷ (判定+3)」で計算し、判定回数が少ない回の高得点を少し割り引きます。回数が多いほど実際の正答率に近づきます。<br><br>
   <b>③ 種類係数</b>：√(種類数÷2)。1種類 0.71、2種類 1.00、3種類 1.22、4種類 1.41、5種類 1.58<br><br>
   <b>④ テンポ係数</b>：(2秒÷出現間隔)^0.2。1秒 1.15、2秒 1.00、3秒 0.92<br><br>
