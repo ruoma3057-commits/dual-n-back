@@ -77,6 +77,12 @@ main{max-width:1180px;margin:0 auto;padding:28px 26px calc(80px + env(safe-area-
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--r2);padding:22px}
+.hist summary{list-style:none;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.hist summary::-webkit-details-marker{display:none}
+.hist summary h3{margin:0}
+.hist .hc{text-transform:none;letter-spacing:0;font-weight:500;margin-left:6px}
+.hist .chev{color:var(--muted);transition:transform .2s;font-size:14px}
+.hist[open] .chev{transform:rotate(180deg)}
 .card h3 .info{float:right;text-transform:none;letter-spacing:0;font-weight:500;color:var(--accent);cursor:pointer;text-decoration:underline;text-underline-offset:3px}
 .card h3{margin:0 0 14px;font-size:13px;letter-spacing:.08em;color:var(--muted);font-weight:600;text-transform:uppercase}
 .btn{border:1px solid var(--line2);background:var(--panel2);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;transition:.15s}
@@ -268,12 +274,6 @@ textarea.io{width:100%;min-height:120px;background:var(--bg2);border:1px solid v
 .pause-ov{position:absolute;inset:0;border-radius:26px;background:var(--pause);backdrop-filter:blur(4px);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:5}
 .pause-ov.on{display:flex}
 .gridwrap{position:relative}
-.start-ov{position:absolute;inset:0;border:0;border-radius:26px;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:4;color:var(--text);font-size:15px;font-weight:700}
-.start-ov .pl{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:30px;padding-left:6px;background:linear-gradient(135deg,var(--accent),var(--accentHi));color:var(--accentInk);box-shadow:0 14px 40px -10px var(--accent);transition:transform .15s}
-.start-ov:hover .pl{transform:scale(1.06)}
-.start-ov small{font-size:12px;color:var(--muted);font-weight:500}
-body.running .start-ov{display:none}
-
 @media (max-width:980px){
   .train{grid-template-columns:1fr}
   #sideIdle{display:contents}
@@ -331,7 +331,6 @@ body.running .start-ov{display:none}
         <div class="stage-top"><span class="nbadge num" id="nBadge">N=2</span><div class="prog"><i id="prog"></i></div><div class="num" id="trialTxt">— / —</div><button class="btn sm mob-pause" id="mobPause" style="display:none">Ⅱ</button></div>
         <div class="gridwrap">
           <div class="grid" id="grid"></div>
-          <button class="start-ov" id="gridStart"><span class="pl">▶</span><span>タップして開始</span><small id="gridStartInfo"></small></button>
           <div class="pause-ov" id="pauseOv">
             <div style="font-size:22px;font-weight:800">一時停止中</div>
             <div style="display:flex;gap:10px"><button class="btn primary" id="resumeBtn">再開 <kbd>Space</kbd></button><button class="btn danger" id="abortBtn">中止</button></div>
@@ -399,7 +398,7 @@ body.running .start-ov{display:none}
       <div class="card"><h3>種類別スコア</h3><div class="chartbox s"><canvas id="chMod"></canvas></div></div>
       <div class="card wide"><h3>継続カレンダー（直近26週）</h3><div class="heat" id="heat"></div>
         <div class="legend">少<span class="d h0"></span><span class="d h1"></span><span class="d h2"></span><span class="d h3"></span><span class="d h4"></span>目標達成</div></div>
-      <div class="card wide"><h3>セッション履歴</h3><div style="overflow-x:auto"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>実力</th><th>正答率</th><th>時間</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></div>
+      <details class="card wide hist" id="histBox"><summary><h3>セッション履歴 <span class="hc num" id="histCnt"></span></h3><span class="chev">▾</span></summary><div style="overflow-x:auto;margin-top:14px"><table><thead><tr><th>日時</th><th>N</th><th>種類</th><th>実力</th><th>正答率</th><th>時間</th><th></th></tr></thead><tbody id="hist"></tbody></table></div></details>
     </div>
   </section>
 
@@ -894,7 +893,6 @@ function renderTrainSide(){
   const name = ['Single','Dual','Triple','Quad','Penta'][mods.length-1] || '—';
   $('#metaInfo').innerHTML = `<div>形式 <b>${name} N-Back</b></div><div>回数 <b class="num">${tot}</b> 回</div><div>間隔 <b class="num">${fmtNum(st.intervalMs/1000)}</b> 秒</div><div>所要 <b class="num">${fmtDur(tot*st.intervalMs/1000)}</b></div>`;
   $('#ivCtl').innerHTML = `<div class="l">出現間隔</div><div class="c"><button data-iv="-1">−</button><b class="num">${fmtNum(st.intervalMs/1000)}秒</b><button data-iv="1">+</button></div>`;
-  $('#gridStartInfo').textContent = `N=${st.n} ・ ${mods.map(m=>MODS[m].label).join('・')} ・ ${tot}回`;
   $('#durCtl').innerHTML = st.lenMode === 'time'
     ? `<div class="l">プレイ時間<button class="md" data-lm="trials">回数で指定</button></div><div class="c"><button data-dur="-1">−</button><b class="num">${fmtNum(st.minutes)}分</b><button data-dur="1">+</button></div>`
     : `<div class="l">回数<button class="md" data-lm="time">時間で指定</button></div><div class="c"><button data-dur="-1">−</button><b class="num">${tot}回</b><button data-dur="1">+</button></div>`;
@@ -973,6 +971,7 @@ function renderHeat(days){
   $('#heat').innerHTML = html;
 }
 function renderHist(list){
+  $('#histCnt').textContent = list.length + '件';
   const rows = list.slice(-40).reverse();
   $('#hist').innerHTML = rows.length ? rows.map(s => {
     const cls = s.nextN > s.n ? 'up' : s.nextN < s.n ? 'down' : 'same'; const arrow = s.nextN > s.n ? '▲ ' : s.nextN < s.n ? '▼ ' : '';
@@ -1056,7 +1055,6 @@ $('#nMinus').onclick = () => setN(ST().n - 1);
 $('#nPlus').onclick = () => setN(ST().n + 1);
 $$('[data-nstep]').forEach(b => b.onclick = () => setN(ST().n + (+b.dataset.nstep)));
 $('#startBtn').onclick = startSession;
-$('#gridStart').onclick = startSession;
 $('#pauseBtn').onclick = pause;
 $('#mobPause').onclick = pause;
 $('#resumeBtn').onclick = resume;
@@ -1265,6 +1263,8 @@ if('serviceWorker' in navigator && (location.protocol === 'https:' || location.h
     }).catch(()=>{});
   });
 }
+
+try{ const hb = $('#histBox'); hb.open = localStorage.getItem('dnb-hist-open') === '1'; hb.addEventListener('toggle', () => { try{ localStorage.setItem('dnb-hist-open', hb.open ? '1' : '0'); }catch(e){} }); }catch(e){}
 
 /* ---------- boot ---------- */
 buildGrid(); loadLocal(); setSync('local'); renderAll();
