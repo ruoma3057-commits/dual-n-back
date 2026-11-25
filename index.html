@@ -139,6 +139,37 @@ body:not(.running) .stage-top{display:none}
 .meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;font-size:12px;color:var(--muted)}
 .meta b{color:var(--text);font-weight:600}
 .start{width:100%;padding:16px;font-size:16px;margin-top:18px;border-radius:14px}
+.howto{display:block;width:100%;margin-top:10px;background:none;border:0;color:var(--accent);font-size:13px;font-weight:600;padding:6px}
+.themebtn#helpBtn{font-weight:800;font-size:16px}
+.tut h2{margin:0 0 4px}
+.tut .lead{font-size:13.5px;color:var(--muted);line-height:1.8;margin:6px 0 14px}
+.demo{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start;padding:16px;border-radius:18px;background:var(--bg2);border:1px solid var(--line)}
+.dgrid{width:156px;height:156px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:5px;padding:5px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.dgrid div{border-radius:8px;background:var(--cell);border:1px solid var(--cellB);display:grid;place-items:center}
+.dgrid .on{background:var(--accent);border-color:var(--accent);animation:pop .18s ease}
+.dside{display:flex;flex-direction:column;gap:10px;min-width:0}
+.dletter{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.dletter b{display:inline-grid;place-items:center;min-width:44px;height:44px;border-radius:12px;background:var(--panel);border:1px solid var(--line2);font-size:22px;color:var(--text)}
+.dletter b.on{border-color:var(--accent2);color:var(--accent2);animation:pop .18s ease}
+.dhist{display:flex;gap:6px}
+.dh{flex:1;text-align:center;font-size:10.5px;color:var(--muted);padding:6px 4px;border-radius:10px;border:1px solid var(--line);background:var(--panel)}
+.dh .mg{width:30px;height:30px;margin:4px auto;display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.dh .mg i{border-radius:2px;background:var(--line)}
+.dh .mg i.on{background:var(--accent)}
+.dh b{display:block;font-size:14px;color:var(--text)}
+.dh.tgt{border-color:var(--warn);box-shadow:0 0 0 2px rgba(251,191,36,.25)}
+.dh.cur{border-color:var(--accent)}
+.dbtns{display:flex;gap:8px}
+.dbtns span{flex:1;text-align:center;padding:10px 4px;border-radius:12px;border:1px solid var(--line2);background:var(--panel);font-weight:700;font-size:13px;transition:.15s}
+.dbtns span.press{background:rgba(52,211,153,.18);border-color:var(--good);transform:scale(.96)}
+.dcap{grid-column:1/-1;min-height:48px;font-size:13.5px;line-height:1.7;padding:10px 12px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.dcap .ok{color:var(--good);font-weight:700}.dcap .no{color:var(--muted);font-weight:700}
+.dctl{display:flex;gap:8px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.dctl .st{font-size:12px;color:var(--muted);margin-left:auto}
+.tsteps{margin:16px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.tsteps li{display:flex;gap:12px;font-size:13.5px;line-height:1.75}
+.tsteps li .no{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800;background:var(--acc-a);color:var(--accent);margin-top:2px}
+@media (max-width:640px){.demo{grid-template-columns:1fr;justify-items:center}.dside{width:100%}.dgrid{width:180px;height:180px}}
 .bkrem{margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);padding:9px 12px;border-radius:11px;background:var(--bg2);border:1px solid var(--line)}
 .bkrem button{white-space:nowrap}
 .hint{font-size:12px;color:var(--dim);text-align:center;margin-top:10px}
@@ -317,6 +348,7 @@ textarea.io{width:100%;min-height:120px;background:var(--bg2);border:1px solid v
     <button data-v="settings">設定</button>
   </nav>
   <div class="hdr-right">
+    <button class="themebtn" id="helpBtn" title="遊び方">?</button>
     <button class="themebtn" id="themeBtn" title="表示モードの切り替え"></button>
     <span class="lvl num" id="hdrLvl">Lv 1</span>
     <span class="pill" id="sync"><span class="dot"></span><span id="syncTxt">端末内に保存</span></span>
@@ -350,6 +382,7 @@ textarea.io{width:100%;min-height:120px;background:var(--bg2);border:1px solid v
           <div class="dur" id="durCtl"></div>
           <div class="dur" id="ivCtl" style="margin-top:8px"></div>
           <button class="btn primary start" id="startBtn">トレーニング開始</button>
+          <button class="howto" id="howtoLink">はじめての方へ：遊び方を見る ▶</button>
           <div class="bkrem" id="bkRem" style="display:none"></div>
           <div class="hint"><kbd>Space</kbd> で開始 ・ 一致したらキー/ボタン</div>
         </div>
@@ -1015,7 +1048,80 @@ const RS = s => (s._r || (s._r = rating(s))).score;
 
 /* ---------- result modal ---------- */
 function openModal(html){ $('#modal').innerHTML = html; $('#scrim').classList.add('on'); }
-function closeModal(){ $('#scrim').classList.remove('on'); }
+function closeModal(){
+  $('#scrim').classList.remove('on');
+  if(tut.timer){ clearTimeout(tut.timer); tut.timer = null; } clearTimeout(tut.pt);
+  if(tut.open){ tut.open = false; if(!S.profile.tutorialSeen){ S.profile.tutorialSeen = Date.now(); touchProfile(); } }
+}
+
+/* ---------- 遊び方（デモ付き） ---------- */
+const tut = {timer:null, i:-1, playing:false, open:false, sound:true};
+const DEMO = [[0,'C'],[4,'H'],[0,'K'],[6,'R'],[2,'K'],[6,'R'],[7,'C'],[3,'R'],[7,'S'],[1,'T']];
+const DN = 2;
+function miniGrid(p){ let h = '<div class="mg">'; for(let k=0;k<9;k++) h += `<i class="${k===p?'on':''}"></i>`; return h + '</div>'; }
+function tutRender(){
+  const i = tut.i, cur = DEMO[i];
+  $$('#dGrid div').forEach((c,k) => c.classList.toggle('on', !!cur && k === cur[0]));
+  const lb = $('#dLetter'); lb.textContent = cur ? cur[1] : '–'; lb.classList.remove('on'); if(cur){ void lb.offsetWidth; lb.classList.add('on'); }
+  const slots = [[i-2,'2つ前'],[i-1,'1つ前'],[i,'今']];
+  $('#dHist').innerHTML = slots.map(([k,lab],j) => { const d = DEMO[k]; return `<div class="dh ${j===0 && i>=DN ? 'tgt' : ''} ${j===2 ? 'cur' : ''}">${lab}${d ? miniGrid(d[0]) + `<b>${d[1]}</b>` : '<div class="mg"></div><b>–</b>'}</div>`; }).join('');
+  $$('#dBtns span').forEach(b => b.classList.remove('press'));
+  let cap;
+  if(!cur) cap = '▶ を押すとデモが始まります。ここでは <b>N=2</b>（2つ前と比べる）の「位置＋音」で説明します。';
+  else if(i < DN) cap = `${i+1}回目：まだ比べる相手（2つ前）がありません。<b>覚えるだけ</b>で、何も押しません。`;
+  else {
+    const p = DEMO[i-DN], pm = p[0] === cur[0], lm = p[1] === cur[1];
+    const parts = [];
+    parts.push(`位置：2つ前と${pm ? '<span class="ok">同じ</span>' : '<span class="no">違う</span>'}`);
+    parts.push(`音：2つ前「${p[1]}」→ 今「${cur[1]}」で${lm ? '<span class="ok">同じ</span>' : '<span class="no">違う</span>'}`);
+    const act = pm && lm ? '<b>「位置」と「音」の両方</b>を押す' : pm ? '<b>「位置」</b>を押す' : lm ? '<b>「音」</b>を押す' : '<b>何も押さない</b>（これも正解）';
+    cap = `${i+1}回目：${parts.join('、')} → ${act}`;
+    clearTimeout(tut.pt); tut.pt = setTimeout(() => { if(pm) $('#dBtns [data-k=pos]').classList.add('press'); if(lm) $('#dBtns [data-k=snd]').classList.add('press'); }, 650);
+  }
+  $('#dCap').innerHTML = cap;
+  $('#dStep').textContent = cur ? `${i+1} / ${DEMO.length}` : '';
+  $('#dPlay').textContent = tut.playing ? '❚❚ 一時停止' : (i >= DEMO.length-1 ? '↺ もう一度' : '▶ 再生');
+}
+function tutStep(){
+  if(!tut.open) return;
+  tut.i++;
+  if(tut.i >= DEMO.length){ tut.i = DEMO.length - 1; tut.playing = false; tutRender(); return; }
+  if(tut.sound){ ensureAudio(); playSfx(); setTimeout(() => playBuiltin(DEMO[tut.i][1].toLowerCase()), 90); }
+  tutRender();
+  if(tut.playing){ const t = setTimeout(tutStep, 2600); tut.timer = t; }
+}
+function openTutorial(){
+  if(R.state !== 'idle') return;
+  openModal(`<div class="tut"><h2>遊び方</h2>
+    <div class="lead">画面に出る刺激が <b>N回前と同じ</b>かどうかを判断するトレーニングです。同じなら、その種類のボタンを押します。下のデモで実際の流れを見てみましょう。</div>
+    <div class="demo">
+      <div class="dgrid" id="dGrid">${'<div></div>'.repeat(9)}</div>
+      <div class="dside">
+        <div class="dletter">聞こえる音 <b id="dLetter">–</b></div>
+        <div class="dhist" id="dHist"></div>
+        <div class="dbtns" id="dBtns"><span data-k="pos">位置</span><span data-k="snd">音</span></div>
+      </div>
+      <div class="dcap" id="dCap"></div>
+    </div>
+    <div class="dctl"><button class="btn sm primary" id="dPlay">▶ 再生</button><button class="btn sm" id="dNext">1つ進む</button><button class="btn sm" id="dReset">最初から</button><label style="font-size:12.5px;display:flex;align-items:center;gap:6px;color:var(--muted)"><input type="checkbox" id="dSnd" checked> 音あり</label><span class="st num" id="dStep"></span></div>
+    <ol class="tsteps">
+      <li><span class="no">1</span><div><b>N を決める</b>：N=2 なら「2つ前」と比べます。最初は N=2 がおすすめです。</div></li>
+      <li><span class="no">2</span><div><b>種類を選ぶ</b>：位置・色・形・文字・音から選べます。2種類なら Dual、3種類以上で Triple 以上になります。</div></li>
+      <li><span class="no">3</span><div><b>一致したら押す</b>：種類ごとにボタン（PC はキー A・S・D・K・L）があります。一致しないときは押しません。最初の N 回は覚えるだけです。</div></li>
+      <li><span class="no">4</span><div><b>結果を見る</b>：正答率と「実力スコア」が出ます。80%以上なら N を1つ上げて挑戦できます（自動では上がりません）。</div></li>
+      <li><span class="no">5</span><div><b>毎日少しずつ</b>：1日数回・数分でも続けることが大切です。記録はプレイヤーごとに別々に保存され、他の人からは見えません。</div></li>
+    </ol>
+    <div class="mb"><button class="btn primary" data-close>はじめる</button></div></div>`);
+  tut.open = true; tut.i = -1; tut.playing = false; tutRender();
+  $('#dPlay').onclick = () => {
+    if(tut.playing){ tut.playing = false; clearTimeout(tut.timer); tutRender(); return; }
+    if(tut.i >= DEMO.length - 1) tut.i = -1;
+    tut.playing = true; clearTimeout(tut.timer); tutStep();
+  };
+  $('#dNext').onclick = () => { tut.playing = false; clearTimeout(tut.timer); if(tut.i >= DEMO.length-1) tut.i = -1; tutStep(); };
+  $('#dReset').onclick = () => { tut.playing = false; clearTimeout(tut.timer); tut.i = -1; tutRender(); };
+  $('#dSnd').onchange = e => { tut.sound = e.target.checked; };
+}
 function showResult(s, newA, lvUp){
   const r = rating(s), prev = S.sessions.filter(x => x !== s && !x.partial), best = prev.reduce((a,x) => Math.max(a, RS(x)), 0);
   const recent = prev.slice(-10), avg = recent.length ? Math.round(recent.reduce((a,x)=>a+RS(x),0)/recent.length) : null;
@@ -1267,7 +1373,10 @@ if('serviceWorker' in navigator && (location.protocol === 'https:' || location.h
 try{ const hb = $('#histBox'); hb.open = localStorage.getItem('dnb-hist-open') === '1'; hb.addEventListener('toggle', () => { try{ localStorage.setItem('dnb-hist-open', hb.open ? '1' : '0'); }catch(e){} }); }catch(e){}
 
 /* ---------- boot ---------- */
+$('#helpBtn').onclick = openTutorial;
+$('#howtoLink').onclick = openTutorial;
 buildGrid(); loadLocal(); setSync('local'); renderAll();
+if(!S.sessions.length && !S.profile.tutorialSeen) setTimeout(() => { if(!S.sessions.length && !S.profile.tutorialSeen && !$('#scrim').classList.contains('on')) openTutorial(); }, 1500);
 connectCloud();
 })();
 </script>
